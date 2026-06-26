@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id  // uuid géré par Supabase, pas de default
+  email       String    @unique
+  phone       String?   @unique
+  // password supprimé — géré par Supabase Auth
+  firstName   String    @default("") @map("first_name")
+  lastName    String    @default("") @map("last_name")
+  avatar      String?
+  role        UserRole  @default(BUYER)
+  isVerified  Boolean   @default(false) @map("is_verified")
+  rating      Float     @default(0)
+  reviewCount Int       @default(0) @map("review_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  demands          Demand[]
+  offers           Offer[]
+  alerts           Alert[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  reviewsGiven     Review[]  @relation("ReviewsGiven")
+  reviewsReceived  Review[]  @relation("ReviewsReceived")
+
+  @@map("users")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  BOTH
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  nameAr      String?
+  slug        String    @unique
+  icon        String?
+  description String?
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  demands     Demand[]
+  alerts      Alert[]
+  subCategories SubCategory[]
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String
+  categoryId  String
+  fields      Json?     // Configuration des champs dynamiques
+  createdAt   DateTime  @default(now())
+
+  category    Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, slug])
+  @@map("sub_categories")
+}
+
+model Demand {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  categoryId    String
+  subCategoryId String?
+
+  // Critères spécifiques (stockés en JSON pour flexibilité)
+  criteria      Json          @default("{}")
+
+  // Budget
+  budgetMin     Float?
+  budgetMax     Float?
+  currency      String        @default("TND")
+
+  // Localisation
+  city          String
+  region        String?
+
+  // État souhaité
+  condition     Condition     @default(ANY)
+
+  // Statut
+  status        DemandStatus  @default(ACTIVE)
+
+  // Expiration
+  expiresAt     DateTime      @default(dbgenerated("NOW() + INTERVAL '30 days'"))
+
+  // Relations
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
+  offers        Offer[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("demands")
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  ANY
+}
+
+enum DemandStatus {
+  ACTIVE
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}
+
+model Offer {
+  id            String        @id @default(cuid())
+  demandId      String
+  sellerId      String
+
+  // Détails de l'offre
+  price         Float
+  description   String?
+  images        String[]      @default([])
+
+  // Statut
+  status        OfferStatus   @default(PENDING)
+
+  // Relations
+  demand        Demand        @relation(fields: [demandId], references: [id])
+  seller        User          @relation(fields: [sellerId], references: [id])
+  messages      Message[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("offers")
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  EXPIRED
+}
+
+model Alert {
+  id            String    @id @default(cuid())
+  userId        String
+  categoryId    String
+
+  // Critères de matching
+  keywords      String[]  @default([])
+  city          String?
+  region        String?
+  budgetMin     Float?
+  budgetMax     Float?
+  conditions    Condition[] @default([])
+
+  // Notification
+  notifyEmail   Boolean   @default(true)
+  notifyPush    Boolean   @default(true)
+
+  // Statut
+  isActive      Boolean   @default(true)
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  category      Category  @relation(fields: [categoryId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("alerts")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  content     String
+  offerId     String
+  senderId    String
+  receiverId  String
+  isRead      Boolean   @default(false)
+
+  offer       Offer     @relation(fields: [offerId], references: [id])
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  createdAt   DateTime  @default(now())
+
+  @@map("messages")
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  reviewerId  String
+  reviewedId  String
+  rating      Int       // 1-5
+  comment     String?
+
+  reviewer    User      @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewed    User      @relation("ReviewsReceived", fields: [reviewedId], references: [id])
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([reviewerId, reviewedId])
+  @@map("reviews")
+}
