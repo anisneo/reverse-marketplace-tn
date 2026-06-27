@@ -1,12 +1,13 @@
 "use client"
 
+import { Suspense } from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, UserPlus, Sparkles } from "lucide-react"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/dashboard"
@@ -23,6 +24,7 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
 
+<<<<<<< HEAD
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -40,8 +42,18 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError("Erreur de connexion")
+=======
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      setError(error.message)
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
       setLoading(false)
+      return
     }
+
+    router.push(redirect)
+    router.refresh()
   }
 
   return (
@@ -84,9 +96,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
+<<<<<<< HEAD
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Adresse email
               </label>
+=======
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -101,9 +117,13 @@ export default function LoginPage() {
             </div>
 
             <div>
+<<<<<<< HEAD
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Mot de passe
               </label>
+=======
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -124,6 +144,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -163,6 +184,17 @@ export default function LoginPage() {
             >
               <UserPlus className="w-5 h-5" />
               Créer un compte
+=======
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">Pas encore de compte ? </span>
+            <Link href="/register" className="font-medium text-primary-600 hover:text-primary-700">
+              S&apos;inscrire
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
             </Link>
           </div>
         </div>
@@ -172,5 +204,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -94,6 +95,7 @@ const cities = [
   "Kasserine", "Sidi Bouzid", "Gabès", "Medenine", "Tataouine", "Gafsa", "Tozeur", "Kebili"
 ]
 
+<<<<<<< HEAD
 const stepLabels = [
   { num: 1, label: "Catégorie", icon: Search },
   { num: 2, label: "Détails", icon: Tag },
@@ -101,6 +103,9 @@ const stepLabels = [
 ]
 
 export default function NewDemandPage() {
+=======
+function NewDemandForm() {
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -134,9 +139,6 @@ export default function NewDemandPage() {
     setLoading(true)
     setError("")
 
-    console.log("=== DÉBUT PUBLICATION ===")
-    console.log("Catégorie sélectionnée:", formData.categoryId)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setError("Vous devez être connecté pour publier une demande")
@@ -144,31 +146,28 @@ export default function NewDemandPage() {
       return
     }
 
+<<<<<<< HEAD
     console.log("Utilisateur connecté:", user.id)
 
+=======
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
     const { data: categoryData, error: categoryError } = await supabase
       .from("categories")
       .select("id, name, slug")
       .eq("slug", formData.categoryId)
       .maybeSingle()
 
-    console.log("Résultat requête catégorie:", { categoryData, categoryError })
-
     if (categoryError) {
-      console.log("Erreur catégorie:", categoryError)
       setError("Erreur lors de la récupération de la catégorie: " + categoryError.message)
       setLoading(false)
       return
     }
 
     if (!categoryData) {
-      console.log("Catégorie non trouvée pour slug:", formData.categoryId)
       setError("Catégorie non trouvée: " + formData.categoryId)
       setLoading(false)
       return
     }
-
-    console.log("Catégorie trouvée:", categoryData)
 
     const insertData = {
       title: formData.title,
@@ -185,19 +184,13 @@ export default function NewDemandPage() {
       user_id: user.id,
     }
 
-    console.log("Données à insérer:", insertData)
-
     const { error: insertError } = await supabase.from("demands").insert(insertData)
 
     if (insertError) {
-      console.log("Erreur insertion:", insertError)
       setError("Erreur lors de la publication: " + insertError.message)
       setLoading(false)
       return
     }
-
-    console.log("Demande publiée avec succès!")
-    console.log("=== FIN PUBLICATION ===")
 
     router.push("/dashboard")
     router.refresh()
@@ -206,7 +199,6 @@ export default function NewDemandPage() {
   const canProceed = () => {
     if (step === 1) return !!formData.categoryId
     if (step === 2) return !!formData.title && !!formData.city
-    if (step === 3) return true
     return true
   }
 
@@ -247,6 +239,7 @@ export default function NewDemandPage() {
           </p>
         </div>
 
+<<<<<<< HEAD
         {/* Progress Steps */}
         <div className="mb-10">
           <div className="flex items-center justify-between">
@@ -303,6 +296,24 @@ export default function NewDemandPage() {
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 sm:p-8">
           {/* Step 1: Category */}
+=======
+        <div className="mb-8 flex items-center gap-2">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex items-center gap-2 flex-1">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                s < step ? "bg-blue-600 text-white" : s === step ? "bg-blue-100 text-blue-700 border-2 border-blue-600" : "bg-gray-200 text-gray-500"
+              }`}>
+                {s < step ? <Check className="h-4 w-4" /> : s}
+              </div>
+              {s < 3 && <div className={`h-1 flex-1 rounded ${s < step ? "bg-blue-600" : "bg-gray-200"}`} />}
+            </div>
+          ))}
+        </div>
+
+        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+
+        <div className="card">
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
@@ -320,6 +331,7 @@ export default function NewDemandPage() {
                   const isSelected = formData.categoryId === cat.id
 
                   return (
+<<<<<<< HEAD
                     <button
                       key={cat.id}
                       onClick={() => setFormData({ ...formData, categoryId: cat.id })}
@@ -352,6 +364,16 @@ export default function NewDemandPage() {
                           </p>
                         </div>
                       </div>
+=======
+                    <button key={cat.id} onClick={() => setFormData({ ...formData, categoryId: cat.id })}
+                      className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
+                        formData.categoryId === cat.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                      }`}>
+                      <Icon className={`h-8 w-8 ${formData.categoryId === cat.id ? "text-blue-600" : "text-gray-400"}`} />
+                      <span className={`text-sm font-medium ${formData.categoryId === cat.id ? "text-blue-700" : "text-gray-700"}`}>
+                        {cat.name}
+                      </span>
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                     </button>
                   )
                 })}
@@ -359,13 +381,35 @@ export default function NewDemandPage() {
             </div>
           )}
 
-          {/* Step 2: Details */}
           {step === 2 && selectedCategory && (
+<<<<<<< HEAD
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
                   <selectedCategory.icon className="w-4 h-4" />
                   {selectedCategory.name}
+=======
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Détails de votre recherche</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre de la demande *</label>
+                <input type="text" value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="input-field" placeholder={`Ex: ${selectedCategory.name}...`} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (optionnel)</label>
+                <textarea value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="input-field min-h-[100px]" placeholder="Précisez vos critères..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget min (TND)</label>
+                  <input type="number" value={formData.budgetMin}
+                    onChange={(e) => setFormData({ ...formData, budgetMin: e.target.value })}
+                    className="input-field" placeholder="0" />
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Détails de votre recherche
@@ -377,6 +421,7 @@ export default function NewDemandPage() {
 
               <div className="space-y-5">
                 <div>
+<<<<<<< HEAD
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Titre de la demande <span className="text-red-500">*</span>
                   </label>
@@ -490,18 +535,58 @@ export default function NewDemandPage() {
                       </button>
                     ))}
                   </div>
+=======
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget max (TND)</label>
+                  <input type="number" value={formData.budgetMax}
+                    onChange={(e) => setFormData({ ...formData, budgetMax: e.target.value })}
+                    className="input-field" placeholder="10000" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
+                <select value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="input-field" required>
+                  <option value="">Choisir une ville</option>
+                  {cities.map((city) => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">État souhaité</label>
+                <div className="flex flex-wrap gap-2">
+                  {conditions.map((cond) => (
+                    <button key={cond.value} onClick={() => setFormData({ ...formData, condition: cond.value })}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        formData.condition === cond.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}>
+                      {cond.label}
+                    </button>
+                  ))}
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 3: Specific criteria */}
           {step === 3 && selectedCategory && (
+<<<<<<< HEAD
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
                   <Sparkles className="w-4 h-4" />
                   {selectedCategory.name}
+=======
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Critères spécifiques - {selectedCategory.name}</h2>
+              {selectedCategory.fields.map((field) => (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                    {field.replace("_", " ")}
+                  </label>
+                  <input type="text" value={formData.criteria[field] || ""}
+                    onChange={(e) => updateCriteria(field, e.target.value)}
+                    className="input-field"
+                    placeholder={`Ex: ${field === "marque" ? "Yamaha, Honda..." : field === "modele" ? "MT-07, Civic..." : ""}`} />
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Critères spécifiques
@@ -725,6 +810,7 @@ export default function NewDemandPage() {
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Navigation Buttons */}
           <div className="mt-10 flex justify-between items-center pt-6 border-t border-gray-100">
             {step > 1 ? (
@@ -734,12 +820,17 @@ export default function NewDemandPage() {
               >
                 <ChevronLeft className="w-5 h-5" />
                 Retour
+=======
+          <div className="mt-8 flex justify-between">
+            {step > 1 ? (
+              <button onClick={() => setStep(step - 1)} className="btn-secondary">
+                <ChevronLeft className="mr-2 h-4 w-4" /> Retour
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
               </button>
-            ) : (
-              <div />
-            )}
+            ) : <div />}
 
             {step < 3 ? (
+<<<<<<< HEAD
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={!canProceed()}
@@ -765,6 +856,14 @@ export default function NewDemandPage() {
                     Publier ma demande
                   </>
                 )}
+=======
+              <button onClick={() => setStep(step + 1)} disabled={!canProceed()} className="btn-primary disabled:opacity-50">
+                Suivant <ChevronRight className="ml-2 h-4 w-4" />
+              </button>
+            ) : (
+              <button onClick={handleSubmit} disabled={loading} className="btn-primary disabled:opacity-50">
+                {loading ? "Publication..." : "Publier ma demande"} <Check className="ml-2 h-4 w-4" />
+>>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
               </button>
             )}
           </div>
@@ -779,5 +878,13 @@ export default function NewDemandPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function NewDemandPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <NewDemandForm />
+    </Suspense>
   )
 }
