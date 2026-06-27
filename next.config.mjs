@@ -6,6 +6,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    serverComponentsExternalPackages: ["bcryptjs"],
+  },
+  images: {
+    domains: ["localhost"],
+  },
 };
 
 module.exports = nextConfig;
