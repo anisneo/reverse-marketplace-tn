@@ -95,7 +95,7 @@ const cities = [
   "Kasserine", "Sidi Bouzid", "Gabès", "Medenine", "Tataouine", "Gafsa", "Tozeur", "Kebili"
 ]
 
-<<<<<<< HEAD
+
 const stepLabels = [
   { num: 1, label: "Catégorie", icon: Search },
   { num: 2, label: "Détails", icon: Tag },
@@ -105,7 +105,7 @@ const stepLabels = [
 export default function NewDemandPage() {
 =======
 function NewDemandForm() {
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -146,11 +146,11 @@ function NewDemandForm() {
       return
     }
 
-<<<<<<< HEAD
+
     console.log("Utilisateur connecté:", user.id)
 
-=======
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
+
     const { data: categoryData, error: categoryError } = await supabase
       .from("categories")
       .select("id, name, slug")
@@ -239,7 +239,6 @@ function NewDemandForm() {
           </p>
         </div>
 
-<<<<<<< HEAD
         {/* Progress Steps */}
         <div className="mb-10">
           <div className="flex items-center justify-between">
@@ -296,7 +295,7 @@ function NewDemandForm() {
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 sm:p-8">
           {/* Step 1: Category */}
-=======
+
         <div className="mb-8 flex items-center gap-2">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1">
@@ -313,7 +312,7 @@ function NewDemandForm() {
         {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
         <div className="card">
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
@@ -331,7 +330,7 @@ function NewDemandForm() {
                   const isSelected = formData.categoryId === cat.id
 
                   return (
-<<<<<<< HEAD
+
                     <button
                       key={cat.id}
                       onClick={() => setFormData({ ...formData, categoryId: cat.id })}
@@ -364,7 +363,7 @@ function NewDemandForm() {
                           </p>
                         </div>
                       </div>
-=======
+
                     <button key={cat.id} onClick={() => setFormData({ ...formData, categoryId: cat.id })}
                       className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
                         formData.categoryId === cat.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
@@ -373,7 +372,7 @@ function NewDemandForm() {
                       <span className={`text-sm font-medium ${formData.categoryId === cat.id ? "text-blue-700" : "text-gray-700"}`}>
                         {cat.name}
                       </span>
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
                     </button>
                   )
                 })}
@@ -382,13 +381,13 @@ function NewDemandForm() {
           )}
 
           {step === 2 && selectedCategory && (
-<<<<<<< HEAD
+
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
                   <selectedCategory.icon className="w-4 h-4" />
                   {selectedCategory.name}
-=======
+
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Détails de votre recherche</h2>
               <div>
@@ -409,7 +408,6 @@ function NewDemandForm() {
                   <input type="number" value={formData.budgetMin}
                     onChange={(e) => setFormData({ ...formData, budgetMin: e.target.value })}
                     className="input-field" placeholder="0" />
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Détails de votre recherche
@@ -421,7 +419,7 @@ function NewDemandForm() {
 
               <div className="space-y-5">
                 <div>
-<<<<<<< HEAD
+
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Titre de la demande <span className="text-red-500">*</span>
                   </label>
@@ -535,7 +533,7 @@ function NewDemandForm() {
                       </button>
                     ))}
                   </div>
-=======
+
                   <label className="block text-sm font-medium text-gray-700 mb-1">Budget max (TND)</label>
                   <input type="number" value={formData.budgetMax}
                     onChange={(e) => setFormData({ ...formData, budgetMax: e.target.value })}
@@ -561,20 +559,19 @@ function NewDemandForm() {
                       {cond.label}
                     </button>
                   ))}
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
               </div>
             </div>
           )}
 
           {step === 3 && selectedCategory && (
-<<<<<<< HEAD
+
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
                   <Sparkles className="w-4 h-4" />
                   {selectedCategory.name}
-=======
+
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Critères spécifiques - {selectedCategory.name}</h2>
               {selectedCategory.fields.map((field) => (
@@ -586,7 +583,6 @@ function NewDemandForm() {
                     onChange={(e) => updateCriteria(field, e.target.value)}
                     className="input-field"
                     placeholder={`Ex: ${field === "marque" ? "Yamaha, Honda..." : field === "modele" ? "MT-07, Civic..." : ""}`} />
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Critères spécifiques

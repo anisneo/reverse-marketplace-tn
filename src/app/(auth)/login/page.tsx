@@ -1,13 +1,12 @@
 "use client"
 
-import { Suspense } from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, UserPlus, Sparkles } from "lucide-react"
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/dashboard"
@@ -24,7 +23,6 @@ function LoginForm() {
     setLoading(true)
     setError("")
 
-<<<<<<< HEAD
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -42,49 +40,32 @@ function LoginForm() {
       }
     } catch (err) {
       setError("Erreur de connexion")
-=======
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      setError(error.message)
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
       setLoading(false)
-      return
     }
-
-    router.push(redirect)
-    router.refresh()
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
-      {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-20 w-80 h-80 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Trouve-Moi<span className="text-gray-400">.tn</span>
             </span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Bienvenue ! 👋
-          </h1>
-          <p className="text-gray-600">
-            Connectez-vous pour accéder à votre espace
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenue ! 👋</h1>
+          <p className="text-gray-600">Connectez-vous pour accéder à votre espace</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
           {error && (
             <div className="mb-6 rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -96,13 +77,7 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-<<<<<<< HEAD
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Adresse email
-              </label>
-=======
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Adresse email</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -117,13 +92,7 @@ function LoginForm() {
             </div>
 
             <div>
-<<<<<<< HEAD
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Mot de passe
-              </label>
-=======
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Mot de passe</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -144,73 +113,35 @@ function LoginForm() {
               </div>
             </div>
 
-<<<<<<< HEAD
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <span className="text-sm text-gray-600">Se souvenir de moi</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Mot de passe oublié ?
-              </Link>
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">Mot de passe oublié ?</Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50"
             >
               {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Connexion...
-                </>
+                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Connexion...</>
               ) : (
-                <>
-                  Se connecter
-                  <ArrowRight className="w-5 h-5" />
-                </>
+                <>Se connecter<ArrowRight className="w-5 h-5" /></>
               )}
             </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-gray-600 mb-4">
-              Pas encore de compte ?
-            </p>
-            <Link 
-              href="/register" 
-              className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-gray-700 bg-gray-50 border-2 border-gray-200 rounded-xl font-semibold hover:border-gray-300 hover:bg-gray-100 transition-all"
-            >
-              <UserPlus className="w-5 h-5" />
-              Créer un compte
-=======
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? "Connexion..." : "Se connecter"}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm">
-            <span className="text-gray-600">Pas encore de compte ? </span>
-            <Link href="/register" className="font-medium text-primary-600 hover:text-primary-700">
-              S&apos;inscrire
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+            <p className="text-gray-600 mb-4">Pas encore de compte ?</p>
+            <Link href="/register" className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-gray-700 bg-gray-50 border-2 border-gray-200 rounded-xl font-semibold hover:border-gray-300 hover:bg-gray-100 transition-all">
+              <UserPlus className="w-5 h-5" />Créer un compte
             </Link>
           </div>
         </div>
-
-        <p className="text-center mt-8 text-sm text-gray-500">
-          © 2024 Trouve-Moi.tn - Marketplace Inversé Tunisie
-        </p>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div>Chargement...</div>}>
-      <LoginForm />
-    </Suspense>
   )
 }
