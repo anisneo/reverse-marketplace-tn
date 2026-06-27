@@ -103,7 +103,7 @@ const stepLabels = [
 ]
 
 export default function NewDemandPage() {
-=======
+
 function NewDemandForm() {
 
   const router = useRouter()
@@ -571,7 +571,6 @@ function NewDemandForm() {
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
                   <Sparkles className="w-4 h-4" />
                   {selectedCategory.name}
-
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Critères spécifiques - {selectedCategory.name}</h2>
               {selectedCategory.fields.map((field) => (
@@ -806,7 +805,7 @@ function NewDemandForm() {
             </div>
           )}
 
-<<<<<<< HEAD
+
           {/* Navigation Buttons */}
           <div className="mt-10 flex justify-between items-center pt-6 border-t border-gray-100">
             {step > 1 ? (
@@ -816,17 +815,17 @@ function NewDemandForm() {
               >
                 <ChevronLeft className="w-5 h-5" />
                 Retour
-=======
+
           <div className="mt-8 flex justify-between">
             {step > 1 ? (
               <button onClick={() => setStep(step - 1)} className="btn-secondary">
                 <ChevronLeft className="mr-2 h-4 w-4" /> Retour
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
               </button>
             ) : <div />}
 
             {step < 3 ? (
-<<<<<<< HEAD
+
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={!canProceed()}
@@ -852,14 +851,14 @@ function NewDemandForm() {
                     Publier ma demande
                   </>
                 )}
-=======
+
               <button onClick={() => setStep(step + 1)} disabled={!canProceed()} className="btn-primary disabled:opacity-50">
                 Suivant <ChevronRight className="ml-2 h-4 w-4" />
               </button>
             ) : (
               <button onClick={handleSubmit} disabled={loading} className="btn-primary disabled:opacity-50">
                 {loading ? "Publication..." : "Publier ma demande"} <Check className="ml-2 h-4 w-4" />
->>>>>>> db18efe33e51cb7b2112bfb72e5e049d4878b771
+
               </button>
             )}
           </div>
