@@ -1,12 +1,13 @@
 "use client"
 
+import { Suspense } from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/dashboard"
@@ -23,42 +24,16 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
 
-    console.log("Tentative connexion...")
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log("Réponse:", { data, error })
-
-      if (error) {
-        console.log("Erreur:", error)
-        setError(error.message)
-        setLoading(false)
-        return
-      }
-
-      if (data?.session) {
-        console.log("Connexion réussie !")
-        
-        // Solution 1 : window.location (plus fiable)
-        window.location.href = redirect
-        
-        // Solution 2 : router.push (décommente si solution 1 ne marche pas)
-        // router.push(redirect)
-        // router.refresh()
-      } else {
-        console.log("Pas de session")
-        setError("Problème de connexion")
-        setLoading(false)
-      }
-    } catch (err) {
-      console.log("Exception:", err)
-      setError("Erreur inattendue")
+    if (error) {
+      setError(error.message)
       setLoading(false)
+      return
     }
+
+    router.push(redirect)
+    router.refresh()
   }
 
   return (
@@ -78,9 +53,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -95,9 +68,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mot de passe
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -118,11 +89,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full"
-            >
+            <button type="submit" disabled={loading} className="btn-primary w-full">
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
@@ -130,11 +97,19 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm">
             <span className="text-gray-600">Pas encore de compte ? </span>
             <Link href="/register" className="font-medium text-primary-600 hover:text-primary-700">
-              S'inscrire
+              S&apos;inscrire
             </Link>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
