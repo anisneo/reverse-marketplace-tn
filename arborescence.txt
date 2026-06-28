@@ -1,0 +1,79 @@
+======================================================================
+ARBORESCENCE DU PROJET
+Projet: C:\Users\Anis\Documents\reverse-marketplace-tn
+Date: 28/06/2026 13:13
+======================================================================
+
+📁 reverse-marketplace-tn/
+├── 📁 prisma/
+├── 📁 src/
+├── ⚙️ .eslintrc.json (149 B)
+├── 📄 .gitignore (285 B)
+├── 📖 README.md (1.4 KB)
+├── 🟦 next-env.d.ts (201 B)
+├── 🟨 next.config.js (264 B)
+├── 📄 next.config.mjs (312 B)
+├── ⚙️ package.json (1.2 KB)
+├── 🟨 postcss.config.js (81 B)
+├── 📄 postcss.config.mjs (135 B)
+├── 🟦 tailwind.config.ts (610 B)
+├── ⚙️ tsconfig.json (551 B)
+├── 🐍 tt.py (11.5 KB)
+├── 📄 update web.bat (159 B)
+│   ├── 📄 schema.prisma (5.3 KB)
+│   ├── 📁 app/
+│   ├── 📁 lib/
+│   ├── 📁 types/
+│   ├── 🟦 middleware.ts (1.3 KB)
+│   │   ├── 📁 (auth)/
+│   │   ├── 📁 dashboard/
+│   │   ├── 📁 demands/
+│   │   ├── 📁 fonts/
+│   │   ├── 📄 globals.cs (1.1 KB)
+│   │   ├── 🟪 globals.css (1.5 KB)
+│   │   ├── 🟦 layout.tsx (562 B)
+│   │   ├── 🟦 page.tsx (17.8 KB)
+│   │   │   ├── 📁 login/
+│   │   │   ├── 📁 register/
+│   │   │   │   ├── 🟦 LoginForm.tsx (6.8 KB)
+│   │   │   │   ├── 🟦 page.tsx (397 B)
+│   │   │   │   ├── 🟦 page.tsx (13.3 KB)
+│   │   │   ├── 🟦 page.tsx (12.7 KB)
+│   │   │   ├── 📁 [id]/
+│   │   │   ├── 📁 new/
+│   │   │   ├── 🟦 page.tsx (12.0 KB)
+│   │   │   │   ├── 🟦 NewDemandForm.tsx (20.9 KB)
+│   │   │   │   ├── 🟦 page.tsx (413 B)
+│   │   │   │   ├── 🟦 page.tsx (18.5 KB)
+│   │   │   ├── 📄 GeistMonoVF.woff (66.3 KB)
+│   │   │   ├── 📄 GeistVF.woff (64.7 KB)
+│   │   ├── 📁 supabase/
+│   │   ├── 🟦 auth.ts (1.0 KB)
+│   │   ├── 🟦 db.ts (278 B)
+│   │   ├── 🟦 utils.ts (1.2 KB)
+│   │   │   ├── 🟦 client.ts (211 B)
+│   │   │   ├── 🟦 middleware.ts (967 B)
+│   │   │   ├── 🟦 server.ts (683 B)
+│   │   ├── 🟦 index.ts (1.1 KB)
+
+======================================================================
+STATISTIQUES
+======================================================================
+📁 Dossiers: 14
+📄 Fichiers: 36
+📊 Total: 50 éléments
+
+TYPES DE FICHIERS:
+----------------------------------------
+  .ts: 10 fichiers
+  .tsx: 10 fichiers
+  .json: 3 fichiers
+  .js: 2 fichiers
+  .mjs: 2 fichiers
+  .woff: 2 fichiers
+  .md: 1 fichiers
+  .py: 1 fichiers
+  .bat: 1 fichiers
+  .prisma: 1 fichiers
+  .cs: 1 fichiers
+  .css: 1 fichiers
