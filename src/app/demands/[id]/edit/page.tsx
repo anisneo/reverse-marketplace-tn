@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { Bike, Car, Zap, Smartphone, ChevronRight, ChevronLeft, Check, Search, MapPin, Tag, Clock, X, Info, Sparkles, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import Navbar from "@/components/Navbar"
+import {
+  Bike, Car, Zap, Smartphone, Search, Tag, MapPin, Clock,
+  Check, ChevronLeft, ChevronRight, Info, Sparkles, Plus, Trash2, X, Save
+} from "lucide-react"
 
 const categories = [
   { id: "moto", name: "Moto", icon: Bike, color: "from-orange-500 to-red-500", bgColor: "bg-orange-50", borderColor: "border-orange-200", textColor: "text-orange-600", shadowColor: "shadow-orange-500/20", description: "Scooters, motos, cross, sportives..." },
@@ -61,17 +64,20 @@ interface LocationEntry {
   delegations: string[]
 }
 
-export default function NewDemandForm() {
+export default function EditDemandPage() {
+  const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClient()
+  const id = params.id as string
 
   const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
-    categoryId: searchParams.get("category") || "",
+    categoryId: "",
     title: "",
     description: "",
     criteria: {} as Record<string, string>,
@@ -80,6 +86,39 @@ export default function NewDemandForm() {
     locations: [] as LocationEntry[],
     condition: "ANY",
   })
+
+  useEffect(() => {
+    async function loadDemand() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push("/login"); return }
+
+      const { data: demand } = await supabase
+        .from("demands")
+        .select("*, category:categories!demands_category_id_fkey(slug)")
+        .eq("id", id)
+        .single()
+
+      if (!demand || demand.user_id !== user.id) { router.push("/dashboard"); return }
+
+      let locations: LocationEntry[] = []
+      if (demand.locations && Array.isArray(demand.locations) && demand.locations.length > 0) {
+        locations = demand.locations
+      }
+
+      setFormData({
+        categoryId: demand.category?.slug || "",
+        title: demand.title || "",
+        description: demand.description || "",
+        criteria: demand.criteria || {},
+        budgetMin: demand.budget_min?.toString() || "",
+        budgetMax: demand.budget_max?.toString() || "",
+        locations,
+        condition: demand.condition || "ANY",
+      })
+      setLoading(false)
+    }
+    loadDemand()
+  }, [id])
 
   const selectedCategory = categories.find((c) => c.id === formData.categoryId)
 
@@ -108,12 +147,7 @@ export default function NewDemandForm() {
       const newLocations = [...prev.locations]
       const entry = newLocations[index]
       const hasDelegation = entry.delegations.includes(delegation)
-      newLocations[index] = {
-        ...entry,
-        delegations: hasDelegation
-          ? entry.delegations.filter((d) => d !== delegation)
-          : [...entry.delegations, delegation],
-      }
+      newLocations[index] = { ...entry, delegations: hasDelegation ? entry.delegations.filter((d) => d !== delegation) : [...entry.delegations, delegation] }
       return { ...prev, locations: newLocations }
     })
   }
@@ -129,51 +163,43 @@ export default function NewDemandForm() {
     })
   }
 
-  async function handleSubmit() {
-    setLoading(true)
+  async function handleSave() {
+    setSaving(true)
     setError("")
+    setSuccess(false)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError("Vous devez être connecté pour publier une demande")
-      setLoading(false)
-      return
-    }
+    if (!user) { setError("Vous devez être connecté"); setSaving(false); return }
 
-    const { data: categoryData, error: categoryError } = await supabase
+    const { data: categoryData } = await supabase
       .from("categories")
-      .select("id, name, slug")
+      .select("id")
       .eq("slug", formData.categoryId)
-      .maybeSingle()
+      .single()
 
-    if (categoryError || !categoryData) {
-      setError("Catégorie non trouvée : " + formData.categoryId)
-      setLoading(false)
-      return
-    }
+    if (!categoryData) { setError("Catégorie non trouvée"); setSaving(false); return }
 
-    const { error: insertError } = await supabase.from("demands").insert({
-      title: formData.title,
-      description: formData.description || null,
-      category_id: categoryData.id,
-      criteria: formData.criteria,
-      budget_min: formData.budgetMin ? parseFloat(formData.budgetMin) : null,
-      budget_max: formData.budgetMax ? parseFloat(formData.budgetMax) : null,
-      currency: "TND",
-      locations: formData.locations,
-      condition: formData.condition,
-      status: "ACTIVE",
-      user_id: user.id,
-    })
+    const { error: updateError } = await supabase
+      .from("demands")
+      .update({
+        title: formData.title,
+        description: formData.description || null,
+        category_id: categoryData.id,
+        criteria: formData.criteria,
+        budget_min: formData.budgetMin ? parseFloat(formData.budgetMin) : null,
+        budget_max: formData.budgetMax ? parseFloat(formData.budgetMax) : null,
+        locations: formData.locations,
+        condition: formData.condition,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("user_id", user.id)
 
-    if (insertError) {
-      setError("Erreur lors de la publication : " + insertError.message)
-      setLoading(false)
-      return
-    }
+    if (updateError) { setError("Erreur : " + updateError.message); setSaving(false); return }
 
-    router.push("/dashboard")
-    router.refresh()
+    setSuccess(true)
+    setSaving(false)
+    setTimeout(() => { router.push("/dashboard"); router.refresh() }, 1500)
   }
 
   const canProceed = () => {
@@ -182,14 +208,22 @@ export default function NewDemandForm() {
     return true
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Poster une demande</h1>
-          <p className="text-gray-600 text-lg">Décrivez ce que vous cherchez, les vendeurs viendront à vous</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Modifier la demande</h1>
+          <p className="text-gray-600 text-lg">Modifiez les informations de votre demande</p>
         </div>
 
         {/* Stepper */}
@@ -221,9 +255,15 @@ export default function NewDemandForm() {
           </div>
         )}
 
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 sm:p-8">
+        {success && (
+          <div className="mb-6 rounded-2xl bg-green-50 border border-green-200 p-4 flex items-start gap-3">
+            <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-green-700">Demande mise à jour ! Redirection...</p>
+          </div>
+        )}
 
-          {/* Step 1 */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-6 sm:p-8">
+          {/* Step 1 — Catégorie */}
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
@@ -238,7 +278,7 @@ export default function NewDemandForm() {
                     <button key={cat.id} onClick={() => setFormData({ ...formData, categoryId: cat.id })}
                       className={`group relative overflow-hidden rounded-2xl border-2 p-6 transition-all text-left ${isSelected ? `${cat.borderColor} ${cat.bgColor} shadow-lg ${cat.shadowColor}` : "border-gray-200 hover:border-gray-300 hover:shadow-md"}`}>
                       <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 rounded-2xl ${cat.bgColor} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                        <div className={`w-14 h-14 rounded-2xl ${cat.bgColor} flex items-center justify-center flex-shrink-0`}>
                           <Icon className={`w-7 h-7 ${cat.textColor}`} />
                         </div>
                         <div className="flex-1">
@@ -256,46 +296,33 @@ export default function NewDemandForm() {
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2 — Détails */}
           {step === 2 && selectedCategory && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
-                  <selectedCategory.icon className="w-4 h-4" />
-                  {selectedCategory.name}
-                </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Détails de votre recherche</h2>
-                <p className="text-gray-600">Plus vous êtes précis, plus vous recevrez d'offres pertinentes</p>
               </div>
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Titre <span className="text-red-500">*</span></label>
                   <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                    placeholder={`Ex: ${selectedCategory.name} ${selectedCategory.id === "voiture" ? "Clio 4 diesel" : selectedCategory.id === "moto" ? "Yamaha MT-07" : "iPhone 14 Pro"}...`} required />
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Description <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all min-h-[120px] resize-y"
-                    placeholder="Précisez vos critères..." />
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all min-h-[120px] resize-y" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Budget min (TND)</label>
-                    <div className="relative">
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input type="number" value={formData.budgetMin} onChange={(e) => setFormData({ ...formData, budgetMin: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="0" min="0" />
-                    </div>
+                    <input type="number" value={formData.budgetMin} onChange={(e) => setFormData({ ...formData, budgetMin: e.target.value })}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="0" min="0" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Budget max (TND) <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input type="number" value={formData.budgetMax} onChange={(e) => setFormData({ ...formData, budgetMax: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="10000" min="0" required />
-                    </div>
+                    <input type="number" value={formData.budgetMax} onChange={(e) => setFormData({ ...formData, budgetMax: e.target.value })}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="10000" min="0" />
                   </div>
                 </div>
 
@@ -310,7 +337,7 @@ export default function NewDemandForm() {
                   {formData.locations.length === 0 && (
                     <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
                       <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">Aucune ville sélectionnée. Cliquez sur "Ajouter une ville" pour commencer.</p>
+                      <p className="text-gray-500 text-sm">Aucune ville sélectionnée.</p>
                     </div>
                   )}
                   <div className="space-y-4">
@@ -318,29 +345,23 @@ export default function NewDemandForm() {
                       const availableDelegations = tunisiaLocations[location.governorate] || []
                       const allSelected = location.delegations.length === availableDelegations.length && availableDelegations.length > 0
                       return (
-                        <div key={index} className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 sm:p-5 space-y-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                              <span className="text-sm font-semibold text-gray-700">Ville {index + 1}</span>
-                            </div>
+                        <div key={index} className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-700">Ville {index + 1}</span>
                             <button onClick={() => removeLocation(index)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1.5">Gouvernorat</label>
-                            <select value={location.governorate} onChange={(e) => updateGovernorate(index, e.target.value)}
-                              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:outline-none bg-white text-sm appearance-none">
-                              <option value="">Choisir un gouvernorat</option>
-                              {Object.keys(tunisiaLocations).map((gov) => <option key={gov} value={gov}>{gov}</option>)}
-                            </select>
-                          </div>
+                          <select value={location.governorate} onChange={(e) => updateGovernorate(index, e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:outline-none bg-white text-sm">
+                            <option value="">Choisir un gouvernorat</option>
+                            {Object.keys(tunisiaLocations).map((gov) => <option key={gov} value={gov}>{gov}</option>)}
+                          </select>
                           {location.governorate && (
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <label className="text-xs font-medium text-gray-500">Délégations</label>
-                                <button onClick={() => selectAllDelegations(index)} className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                                <button onClick={() => selectAllDelegations(index)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
                                   {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
                                 </button>
                               </div>
@@ -349,7 +370,7 @@ export default function NewDemandForm() {
                                   const isSelected = location.delegations.includes(delegation)
                                   return (
                                     <button key={delegation} onClick={() => toggleDelegation(index, delegation)}
-                                      className={`px-3 py-2 rounded-xl text-xs font-medium text-left border transition-all ${isSelected ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"}`}>
+                                      className={`px-3 py-2 rounded-xl text-xs font-medium text-left border transition-all ${isSelected ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
                                       <div className="flex items-center gap-1.5">
                                         {isSelected && <Check className="w-3 h-3 flex-shrink-0" />}
                                         <span className="truncate">{delegation}</span>
@@ -358,9 +379,6 @@ export default function NewDemandForm() {
                                   )
                                 })}
                               </div>
-                              {location.delegations.length > 0 && (
-                                <p className="mt-2 text-xs text-gray-500">{location.delegations.length} délégation{location.delegations.length > 1 ? "s" : ""} sélectionnée{location.delegations.length > 1 ? "s" : ""}</p>
-                              )}
                             </div>
                           )}
                         </div>
@@ -375,7 +393,7 @@ export default function NewDemandForm() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {conditions.map((cond) => (
                       <button key={cond.value} onClick={() => setFormData({ ...formData, condition: cond.value })}
-                        className={`relative rounded-xl border-2 p-4 text-left transition-all ${formData.condition === cond.value ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-500/10" : "border-gray-200 hover:border-gray-300 hover:shadow-sm"}`}>
+                        className={`rounded-xl border-2 p-4 text-left transition-all ${formData.condition === cond.value ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
                         <div className="flex items-center justify-between mb-1">
                           <span className={`font-semibold ${formData.condition === cond.value ? "text-blue-700" : "text-gray-900"}`}>{cond.label}</span>
                           {formData.condition === cond.value && <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
@@ -389,56 +407,46 @@ export default function NewDemandForm() {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3 — Critères */}
           {step === 3 && selectedCategory && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${selectedCategory.bgColor} ${selectedCategory.textColor} text-sm font-medium mb-4`}>
-                  <Sparkles className="w-4 h-4" />{selectedCategory.name}
-                </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Critères spécifiques</h2>
                 <p className="text-gray-600">Ajoutez des détails pour affiner votre recherche</p>
               </div>
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Marque</label>
-                    <input type="text" value={formData.criteria["marque"] || ""} onChange={(e) => updateCriteria("marque", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="Renault, Yamaha..." />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Modèle</label>
-                    <input type="text" value={formData.criteria["modele"] || ""} onChange={(e) => updateCriteria("modele", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="Clio, MT-07..." />
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Marque</label>
+                  <input type="text" value={formData.criteria["marque"] || ""} onChange={(e) => updateCriteria("marque", e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="Renault, Yamaha..." />
                 </div>
-                <div className="border-t border-gray-100 pt-6">
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Couleur préférée</label>
-                  <input type="text" value={formData.criteria["couleur"] || ""} onChange={(e) => updateCriteria("couleur", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="Noir, blanc, rouge..." />
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Modèle</label>
+                  <input type="text" value={formData.criteria["modele"] || ""} onChange={(e) => updateCriteria("modele", e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all" placeholder="Clio, MT-07..." />
                 </div>
-                {formData.locations.length > 0 && (
-                  <div className="border-t border-gray-100 pt-6">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-blue-500" />Zones de recherche
-                    </h3>
-                    <div className="space-y-3">
-                      {formData.locations.map((loc, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900">{loc.governorate}</p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {loc.delegations.length === (tunisiaLocations[loc.governorate]?.length || 0) ? "Toutes les délégations" : loc.delegations.join(", ")}
-                            </p>
-                          </div>
-                          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">{loc.delegations.length} délég.</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
+              {formData.locations.length > 0 && (
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-500" />Zones de recherche
+                  </h3>
+                  <div className="space-y-3">
+                    {formData.locations.map((loc, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{loc.governorate}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {loc.delegations.length === (tunisiaLocations[loc.governorate]?.length || 0) ? "Toutes les délégations" : loc.delegations.join(", ")}
+                          </p>
+                        </div>
+                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">{loc.delegations.length} délég.</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -451,13 +459,13 @@ export default function NewDemandForm() {
             ) : <div />}
             {step < 3 ? (
               <button onClick={() => setStep(step + 1)} disabled={!canProceed()}
-                className="inline-flex items-center gap-2 px-8 py-3.5 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex items-center gap-2 px-8 py-3.5 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 Suivant<ChevronRight className="w-5 h-5" />
               </button>
             ) : (
-              <button onClick={handleSubmit} disabled={loading}
-                className="inline-flex items-center gap-2 px-8 py-3.5 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-50">
-                {loading ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Publication...</> : <><Check className="w-5 h-5" />Publier ma demande</>}
+              <button onClick={handleSave} disabled={saving || success}
+                className="inline-flex items-center gap-2 px-8 py-3.5 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50">
+                {saving ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enregistrement...</> : <><Save className="w-5 h-5" />Enregistrer les modifications</>}
               </button>
             )}
           </div>

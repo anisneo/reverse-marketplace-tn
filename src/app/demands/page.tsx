@@ -1,11 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import Navbar from "@/components/Navbar"
 import {
-  Search, MapPin, Tag, Clock, ChevronRight,
-  Bike, Car, Zap, Smartphone, Filter, SlidersHorizontal
+  Search,
+  MapPin,
+  Tag,
+  Clock,
+  ChevronRight,
+  Bike,
+  Car,
+  Zap,
+  Smartphone,
+  SlidersHorizontal,
+  X,
+  Plus,
+  Filter,
+  Sparkles,
+  TrendingUp,
+  Package,
+  Users,
+  Award
 } from "lucide-react"
 
 const categoryIcons: Record<string, any> = {
@@ -17,11 +34,27 @@ const categoryIcons: Record<string, any> = {
 }
 
 const categoryColors: Record<string, string> = {
-  moto: "bg-orange-100 text-orange-600",
-  voiture: "bg-blue-100 text-blue-600",
-  velo: "bg-green-100 text-green-600",
-  trottinette: "bg-purple-100 text-purple-600",
-  electronique: "bg-pink-100 text-pink-600",
+  moto: "from-orange-500 to-red-500",
+  voiture: "from-blue-500 to-indigo-600",
+  velo: "from-green-500 to-emerald-600",
+  trottinette: "from-purple-500 to-violet-600",
+  electronique: "from-pink-500 to-rose-600",
+}
+
+const categoryBgColors: Record<string, string> = {
+  moto: "bg-orange-50",
+  voiture: "bg-blue-50",
+  velo: "bg-green-50",
+  trottinette: "bg-purple-50",
+  electronique: "bg-pink-50",
+}
+
+const categoryTextColors: Record<string, string> = {
+  moto: "text-orange-600",
+  voiture: "text-blue-600",
+  velo: "text-green-600",
+  trottinette: "text-purple-600",
+  electronique: "text-pink-600",
 }
 
 const conditionLabels: Record<string, string> = {
@@ -32,11 +65,11 @@ const conditionLabels: Record<string, string> = {
   ANY: "Peu importe",
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  ACTIVE: { label: "Active", color: "bg-green-100 text-green-700" },
-  FULFILLED: { label: "Satisfaite", color: "bg-gray-100 text-gray-600" },
-  EXPIRED: { label: "Expirée", color: "bg-red-100 text-red-600" },
-  CANCELLED: { label: "Annulée", color: "bg-red-100 text-red-600" },
+const statusLabels: Record<string, { label: string; color: string; bgColor: string }> = {
+  ACTIVE: { label: "Active", color: "text-green-700", bgColor: "bg-green-50" },
+  FULFILLED: { label: "Satisfaite", color: "text-gray-600", bgColor: "bg-gray-50" },
+  EXPIRED: { label: "Expirée", color: "text-red-700", bgColor: "bg-red-50" },
+  CANCELLED: { label: "Annulée", color: "text-red-700", bgColor: "bg-red-50" },
 }
 
 function timeAgo(dateStr: string) {
@@ -46,8 +79,17 @@ function timeAgo(dateStr: string) {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `Il y a ${hours}h`
   const days = Math.floor(hours / 24)
-  return `Il y a ${days}j`
+  if (days < 7) return `Il y a ${days}j`
+  const weeks = Math.floor(days / 7)
+  return `Il y a ${weeks} sem.`
 }
+
+const cities = [
+  "Tunis", "Ariana", "Ben Arous", "Manouba", "Nabeul", "Zaghouan",
+  "Bizerte", "Béja", "Jendouba", "Le Kef", "Siliana", "Sousse",
+  "Monastir", "Mahdia", "Sfax", "Kairouan", "Kasserine", "Sidi Bouzid",
+  "Gabès", "Medenine", "Tataouine", "Gafsa", "Tozeur", "Kebili"
+]
 
 export default function DemandsPage() {
   const supabase = createClient()
@@ -74,13 +116,12 @@ export default function DemandsPage() {
         .from("demands")
         .select(`
           id, title, description, budget_min, budget_max, currency,
-          city, condition, status, created_at, expires_at,
+          locations, condition, status, created_at, expires_at,
           criteria,
-          category:categories(id, name, slug),
-          user:users(id, first_name, last_name, rating),
+          category:categories!demands_category_id_fkey(id, name, slug),
+          user:users!demands_user_id_fkey(id, first_name, last_name, rating),
           offers(id)
         `)
-        .eq("status", "ACTIVE")
         .order("created_at", { ascending: false })
 
       if (selectedCategory) {
@@ -88,11 +129,15 @@ export default function DemandsPage() {
         if (cat) query = query.eq("category_id", cat.id)
       }
 
-      if (selectedCity) query = query.eq("city", selectedCity)
-
+      if (selectedCity) query = query.contains("locations", [{ governorate: selectedCity }])
       if (search) query = query.ilike("title", `%${search}%`)
 
-      const { data } = await query.limit(40)
+      const { data, error } = await query.limit(40)
+
+      console.log("DEMANDS:", data)
+      console.log("ERROR:", error)
+      console.log("COUNT:", data?.length)
+
       setDemands(data || [])
       setLoading(false)
     }
@@ -100,85 +145,114 @@ export default function DemandsPage() {
     load()
   }, [selectedCategory, selectedCity, search])
 
-  const cities = [
-    "Tunis", "Ariana", "Ben Arous", "Sousse", "Sfax", "Monastir",
-    "Bizerte", "Nabeul", "Gabès", "Gafsa",
-  ]
+  // Get unique locations from demands
+  const availableCities = [...new Set(
+    demands.flatMap(d => d.locations?.map((l: any) => l.governorate) || [])
+  )].filter(Boolean)
+
+  const clearFilters = () => {
+    setSelectedCategory("")
+    setSelectedCity("")
+    setSearch("")
+    setShowFilters(false)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <Link href="/" className="text-xl font-bold text-blue-600 shrink-0">
-              Trouve-Moi.tn
-            </Link>
-            <div className="flex-1 max-w-lg relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <Navbar />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+            Demandes d'achat
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Découvrez ce que les autres cherchent et proposez vos offres
+          </p>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-4 sm:p-6 mb-8">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Rechercher une demande..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-10"
+                className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="hidden sm:inline">Filtres</span>
-              </button>
-              <Link href="/demands/new" className="btn-primary">
-                + Demande
-              </Link>
-            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-2 px-6 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              Filtres
+            </button>
+            <Link
+              href="/demands/new"
+              className="inline-flex items-center gap-2 px-6 py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Nouvelle demande
+            </Link>
           </div>
 
-          {/* Filtres */}
+          {/* Filters Panel */}
           {showFilters && (
-            <div className="mt-4 flex flex-wrap gap-3 pb-2">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="input-field w-auto text-sm"
-              >
-                <option value="">Toutes catégories</option>
-                {categories.map((c: any) => (
-                  <option key={c.id} value={c.slug}>{c.name}</option>
-                ))}
-              </select>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="input-field w-auto text-sm"
-              >
-                <option value="">Toutes les villes</option>
-                {cities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              {(selectedCategory || selectedCity || search) && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
+                  >
+                    <option value="">Toutes les catégories</option>
+                    {categories.map((c: any) => (
+                      <option key={c.id} value={c.slug}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ville</label>
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
+                  >
+                    <option value="">Toutes les villes</option>
+                    {availableCities.length > 0 ? availableCities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    )) : cities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
                 <button
-                  onClick={() => { setSelectedCategory(""); setSelectedCity(""); setSearch("") }}
-                  className="text-sm text-blue-600 hover:underline"
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
+                  <X className="w-4 h-4" />
                   Effacer les filtres
                 </button>
-              )}
+              </div>
             </div>
           )}
 
-          {/* Category pills */}
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {/* Category Pills */}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button
               onClick={() => setSelectedCategory("")}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 !selectedCategory
-                  ? "bg-blue-600 text-white"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -186,50 +260,77 @@ export default function DemandsPage() {
             </button>
             {categories.map((cat: any) => {
               const Icon = categoryIcons[cat.slug]
+              const isSelected = selectedCategory === cat.slug
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.slug === selectedCategory ? "" : cat.slug)}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    selectedCategory === cat.slug
-                      ? "bg-blue-600 text-white"
+                  onClick={() => setSelectedCategory(isSelected ? "" : cat.slug)}
+                  className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    isSelected
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  {Icon && <Icon className="h-3 w-3" />}
+                  {Icon && <Icon className="w-4 h-4" />}
                   {cat.name}
                 </button>
               )
             })}
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-4 flex items-center justify-between">
+        {/* Results Count */}
+        <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            {loading ? "Chargement..." : `${demands.length} demande${demands.length !== 1 ? "s" : ""} active${demands.length !== 1 ? "s" : ""}`}
+            {loading ? (
+              "Chargement..."
+            ) : (
+              <>
+                <span className="font-semibold text-gray-900">{demands.length}</span>
+                {" "}demande{demands.length !== 1 ? "s" : ""} active{demands.length !== 1 ? "s" : ""}
+              </>
+            )}
           </p>
+          {(selectedCategory || selectedCity || search) && (
+            <p className="text-sm text-blue-600">
+              Filtres actifs
+            </p>
+          )}
         </div>
 
+        {/* Loading Skeleton */}
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="card animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
-                <div className="h-3 bg-gray-100 rounded w-1/2 mb-6" />
-                <div className="h-3 bg-gray-100 rounded w-full mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-2/3" />
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 p-6 animate-pulse">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-10 h-10 bg-gray-200 rounded-xl" />
+                  <div className="w-16 h-6 bg-gray-200 rounded-full" />
+                </div>
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-gray-100 rounded w-full mb-6" />
+                <div className="space-y-2 mb-4">
+                  <div className="h-4 bg-gray-100 rounded w-1/2" />
+                  <div className="h-4 bg-gray-100 rounded w-2/3" />
+                </div>
+                <div className="h-4 bg-gray-100 rounded w-1/4" />
               </div>
             ))}
           </div>
         ) : demands.length === 0 ? (
-          <div className="text-center py-20">
-            <Search className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">Aucune demande trouvée</h3>
-            <p className="text-gray-500 mb-6">Soyez le premier à poster ce que vous cherchez.</p>
-            <Link href="/demands/new" className="btn-primary">
+          <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-12">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-blue-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune demande trouvée</h3>
+            <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+              Aucune demande ne correspond à vos critères. Soyez le premier à poster ce que vous cherchez.
+            </p>
+            <Link
+              href="/demands/new"
+              className="inline-flex items-center gap-2 px-8 py-3.5 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all"
+            >
+              <Plus className="w-5 h-5" />
               Poster une demande
             </Link>
           </div>
@@ -238,36 +339,46 @@ export default function DemandsPage() {
             {demands.map((demand: any) => {
               const slug = demand.category?.slug || ""
               const Icon = categoryIcons[slug]
-              const colorClass = categoryColors[slug] || "bg-gray-100 text-gray-600"
+              const colorClass = categoryBgColors[slug] || "bg-gray-100"
+              const textColorClass = categoryTextColors[slug] || "text-gray-600"
+              const gradientClass = categoryColors[slug] || "from-gray-500 to-gray-600"
               const status = statusLabels[demand.status] || statusLabels.ACTIVE
               const offerCount = demand.offers?.length || 0
+
+              // Get first location
+              const firstLocation = demand.locations?.[0]
+              const city = firstLocation?.governorate || "Tunisie"
 
               return (
                 <Link
                   key={demand.id}
                   href={`/demands/${demand.id}`}
-                  className="card group hover:border-blue-300 hover:shadow-md transition-all block"
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 p-6 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`rounded-lg p-2 ${colorClass}`}>
-                      {Icon && <Icon className="h-4 w-4" />}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-2xl ${colorClass} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      {Icon && <Icon className={`w-6 h-6 ${textColorClass}`} />}
                     </div>
-                    <span className={`badge ${status.color}`}>{status.label}</span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.bgColor} ${status.color}`}>
+                      {status.label}
+                    </span>
                   </div>
 
-                  <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
+                  <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2 text-lg">
                     {demand.title}
                   </h3>
 
                   {demand.description && (
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{demand.description}</p>
+                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                      {demand.description}
+                    </p>
                   )}
 
-                  <div className="space-y-1.5 mb-4">
+                  <div className="space-y-2 mb-4">
                     {(demand.budget_min || demand.budget_max) && (
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <Tag className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="font-medium text-gray-900">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="font-semibold text-gray-900">
                           {demand.budget_min && demand.budget_max
                             ? `${demand.budget_min.toLocaleString()} – ${demand.budget_max.toLocaleString()} ${demand.currency}`
                             : demand.budget_max
@@ -276,33 +387,73 @@ export default function DemandsPage() {
                         </span>
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                      <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                      {demand.city}
-                      {demand.region && ` · ${demand.region}`}
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span>{city}</span>
+                      {demand.condition && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <span>{conditionLabels[demand.condition] || demand.condition}</span>
+                        </>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm text-gray-400">
-                      <Clock className="h-3.5 w-3.5" />
-                      {timeAgo(demand.created_at)}
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Clock className="w-4 h-4 flex-shrink-0" />
+                      <span>{timeAgo(demand.created_at)}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-sm text-gray-600">
                       {demand.user?.first_name} {demand.user?.last_name?.charAt(0)}.
+                      {demand.user?.rating && (
+                        <span className="ml-2 text-amber-500">★ {demand.user.rating}</span>
+                      )}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {offerCount > 0 && (
-                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                          <Package className="w-3 h-3" />
                           {offerCount} offre{offerCount > 1 ? "s" : ""}
                         </span>
                       )}
-                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
                 </Link>
               )
             })}
+          </div>
+        )}
+
+        {/* Footer Stats */}
+        {!loading && demands.length > 0 && (
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 p-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{demands.length}</p>
+              <p className="text-sm text-gray-500">Demandes actives</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 p-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mx-auto mb-3">
+                <Users className="w-6 h-6" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {new Set(demands.map(d => d.user?.id)).size}
+              </p>
+              <p className="text-sm text-gray-500">Acheteurs actifs</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/50 p-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+                <Award className="w-6 h-6" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {demands.reduce((acc, d) => acc + (d.offers?.length || 0), 0)}
+              </p>
+              <p className="text-sm text-gray-500">Offres proposées</p>
+            </div>
           </div>
         )}
       </div>
