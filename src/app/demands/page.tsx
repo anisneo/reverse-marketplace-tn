@@ -146,9 +146,9 @@ export default function DemandsPage() {
   }, [selectedCategory, selectedCity, search])
 
   // Get unique locations from demands
-  const availableCities = [...new Set(
+  const availableCities = Array.from(new Set(
     demands.flatMap(d => d.locations?.map((l: any) => l.governorate) || [])
-  )].filter(Boolean)
+  )).filter(Boolean)
 
   const clearFilters = () => {
     setSelectedCategory("")
